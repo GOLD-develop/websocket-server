@@ -6,9 +6,16 @@ const wss = new WebSocket.Server({ server });
 
 wss.on('connection', ws => {
   console.log('クライアント接続');
+
   ws.on('message', message => {
-    console.log('受信:', message);
-    ws.send(`Echo: ${message}`);
+    console.log('受信:', message.toString());
+
+    const response = {
+      eventName: "test:response",
+      data: `Echo: ${message.toString()}`
+    };
+    
+    ws.send(JSON.stringify(response));
   });
 });
 
