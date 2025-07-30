@@ -1,29 +1,47 @@
-const http = require('http');
-const WebSocket = require('ws');
+const WebSocket = require('ws')
+const { v4: uuidv4 } = require('uuid')
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end('OK');
-});
+const port = process.env.PORT || 3000
+const wss = new WebSocket.Server({ port })
 
-const wss = new WebSocket.Server({ server });
+const sendCommand = (socket, command) => {
+  const packet = {
+    header: {
+      requestId: uuidv4(),
+      messagePurpose: 'commandRequest',
+      version: 1
+    },
+    body: {
+      commandLine: command,
+      version: 1
+    }
+  }
+  socket.send(JSON.stringify(packet))
+}
 
-wss.on('connection', ws => {
-  console.log('クライアント接続');
+wss.on('connection', socket => {
+  const subscribePacket = {
+    header: {
+      requestId: uuidv4(),
+      messagePurpose: 'subscribe',
+      version: 1
+    },
+    body: {
+      eventName: 'PlayerMessage'
+    }
+  }
+  socket.send(JSON.stringify(subscribePacket))
 
-  ws.on('message', message => {
-    console.log('受信:', message.toString());
-
-    const response = {
-      eventName: "test:response",
-      data: `Echo: ${message.toString()}`
-    };
-
-    ws.send(JSON.stringify(response));
-  });
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`サーバー起動: ポート ${PORT}`);
-});
+  socket.on('message', data => {
+    let msg
+    try { msg = JSON.parse(data) } catch { return }
+    const { header, body } = msg
+    if (header.messagePurpose === 'event' && header.eventName === 'PlayerMessage') {
+      console.log(`${body.sender}: ${body.message}`)
+      sendCommand(socket, `tellraw @a {"rawtext":[{"text":"§f<${body.sender}§r§f> ${body.message}"}]}`)
+    }
+    if (header.messagePurpose === 'error') {
+      console.error(body.errorMessage)
+    }
+  })
+})
