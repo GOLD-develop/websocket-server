@@ -1,7 +1,11 @@
 const http = require('http');
 const WebSocket = require('ws');
 
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('OK');
+});
+
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', ws => {
@@ -14,7 +18,7 @@ wss.on('connection', ws => {
       eventName: "test:response",
       data: `Echo: ${message.toString()}`
     };
-    
+
     ws.send(JSON.stringify(response));
   });
 });
