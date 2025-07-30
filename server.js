@@ -1,0 +1,18 @@
+const http = require('http');
+const WebSocket = require('ws');
+
+const server = http.createServer();
+const wss = new WebSocket.Server({ server });
+
+wss.on('connection', ws => {
+  console.log('クライアント接続');
+  ws.on('message', message => {
+    console.log('受信:', message);
+    ws.send(`Echo: ${message}`);
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`サーバー起動: ポート ${PORT}`);
+});
